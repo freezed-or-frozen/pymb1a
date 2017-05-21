@@ -51,7 +51,7 @@ Authenticate in order to read private informations (activity data and sensor dat
 print("   + authenticate success : ", mb1a.authenticate() )
 ```
 
-Fetch activity data
+Fetch activity data, decode it to read the steps recorded inside
 ```
 print("   + activity data steps recorded : ", mb1a.fetch_activity_data("dump_activity_data.csv") )
 ```
@@ -66,9 +66,17 @@ Finally disconnect to the device
 mb1a.disconnect()
 ```
 
+## To do list
+Roadmap :
+- read basic informations (~~battery~~, ~~realtime steps~~, date time, device informations, device name)
+- ~~read and record sensor data (accelerometer raw value) in a CSV file~~
+- ~~read and count steps done in activity data recorded in the device~~
+- read and analyse sleep informations in activity data recorded in the device
+- create a pip package
 
 ## Changelog
 Release 0.1.0
 - first release
+- read basic informations like battery, realtime steps, date time and device info
 - can read and record in a CSV file raw value from accelerometer
 - can read and count steps done in activity data recorded in the device

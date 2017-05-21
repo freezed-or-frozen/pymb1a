@@ -6,11 +6,13 @@
 @licence GPLv3
 """
 
-# Librairies used
-import bluepy
+# Standard librairies
 import time
 import math
 import datetime
+
+# Other library (need a custom installation: pip3 install bluepy)
+import bluepy
 
 
 class MiBand1A(bluepy.btle.DefaultDelegate):
