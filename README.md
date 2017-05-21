@@ -87,7 +87,7 @@ Basic informations roadmap :
 - ~~light on/off leds~~
 
 Private informations roadmap :
-- authenticate to access private data (activity data and sensor data)
+- ~~authenticate to access private data (activity data and sensor data)~~
 
 Sensor data roadmap :
 - ~~read sensor data (accelerometer raw value)~~

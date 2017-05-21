@@ -152,7 +152,8 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         @param {MiBand1A} self
         @return {boolean} success or fail
         """
-        data = bytes([0x27, 0x4e, 0x92, 0x06, 0x02, 0x19, 0xaf, 0x46, 0x00, 0x05, 0x00, 0x74, 0x65, 0x73, 0x74, 0x79, 0x00, 0x00, 0x00, 0x16])
+        #data = bytes([0x27, 0x4e, 0x92, 0x06, 0x02, 0x19, 0xaf, 0x46, 0x00, 0x05, 0x00, 0x74, 0x65, 0x73, 0x74, 0x79, 0x00, 0x00, 0x00, 0x16])
+        data = self.generate_user_info(self.bluetooth_address, self.gender, self.age, self.height, self.weight, self.alias, self.which_hand, 5, 0)
         self.user_info_characteristic.write(data, True)
         timeout_counter = 0
         while self.authentication_ended == False and timeout_counter < 100:
@@ -459,11 +460,164 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         self.control_point_characteristic.write(led_on_command, True)
 
         # Wait
-        time.sleep(0.5)
+        time.sleep(1.0)
 
         # Stop vibration
         led_off_command = bytes([0x0e, 0xff, 0xff, 0xff, 0x00])
         self.control_point_characteristic.write(led_off_command, True)
+
+
+    def compute_uid(self, alias):
+        """Method to compute uid number from alias
+        @param {MiBand1A} self
+        @param {string} alias
+        @return {integer} uid
+        """
+        # Try to convert string to integer
+        uid = None
+        try:
+            uid = int(alias)
+        except ValueError:
+            uid = self.compute_hash_code(alias)
+
+        return uid
+
+
+    def compute_hash_code(self, some_string):
+        """Clone of the Java hashCode() function
+        @param {MiBand1A} self
+        @param {string} some_string
+        @return {integer} hash
+        """
+        hash = 0
+
+        if (len(some_string) == 0):
+            return hash;
+
+        for i in range(0, len(some_string)):
+            char = ord(some_string[i])
+            hash = ((hash << 5) - hash) + char
+            hash = hash & hash  # Convert to 32bit integer
+
+        return hash
+
+
+    def normalize(self, alias):
+        """Normalize alias = max length of 8 char + fill empty byte with 0x00
+        @param {MiBand1A} self
+        @param {string} alias (maximum length=8)
+        @return {list} normalized_alias
+        """
+        # Prepare response by filling with 0x00
+        normalized_alias = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+        # Limit
+        limit = len(alias)
+        if (limit > 8):
+            limit = 8
+
+        # Copy of alias in normalized_alias
+        for i in range(0, limit):
+            normalized_alias[i] = ord(alias[i])
+
+        # Return
+        return normalized_alias
+
+
+    def compute_crc8(self, sequence):
+        """Compute CRC8 of a sequence of bytes
+        @param {MiBand1A} self
+        @param {list} sequence
+        @return {integer} crc8
+        @see https://gist.github.com/eaydin/768a200c5d68b9bc66e7
+        """
+        crc_table = (
+            0, 94, 188, 226, 97, 63, 221, 131, 194, 156, 126, 32, 163, 253, 31, 65,
+            157, 195, 33, 127, 252, 162, 64, 30, 95, 1, 227, 189, 62, 96, 130, 220,
+            35, 125, 159, 193, 66, 28, 254, 160, 225, 191, 93, 3, 128, 222, 60, 98,
+            190, 224, 2, 92, 223, 129, 99, 61, 124, 34, 192, 158, 29, 67, 161, 255,
+            70, 24, 250, 164, 39, 121, 155, 197, 132, 218, 56, 102, 229, 187, 89, 7,
+            219, 133, 103, 57, 186, 228, 6, 88, 25, 71, 165, 251, 120, 38, 196, 154,
+            101, 59, 217, 135, 4, 90, 184, 230, 167, 249, 27, 69, 198, 152, 122, 36,
+            248, 166, 68, 26, 153, 199, 37, 123, 58, 100, 134, 216, 91, 5, 231, 185,
+            140, 210, 48, 110, 237, 179, 81, 15, 78, 16, 242, 172, 47, 113, 147, 205,
+            17, 79, 173, 243, 112, 46, 204, 146, 211, 141, 111, 49, 178, 236, 14, 80,
+            175, 241, 19, 77, 206, 144, 114, 44, 109, 51, 209, 143, 12, 82, 176, 238,
+            50, 108, 142, 208, 83, 13, 239, 177, 240, 174, 76, 18, 145, 207, 45, 115,
+            202, 148, 118, 40, 171, 245, 23, 73, 8, 86, 180, 234, 105, 55, 213, 139,
+            87, 9, 235, 181, 54, 104, 138, 212, 149, 203, 41, 119, 244, 170, 72, 22,
+            233, 183, 85, 11, 136, 214, 52, 106, 43, 117, 151, 201, 74, 20, 246, 168,
+            116, 42, 200, 150, 21, 75, 169, 247, 182, 232, 10, 84, 215, 137, 107, 53
+        )
+        crc8 = 0x00
+
+        for c in sequence:
+            crc8 = crc_table[c ^ crc8]
+
+        return crc8
+
+
+    def generate_user_info(self, bluetooth_address, gender, age, height, weight, alias, which_hand, feature=5, appearance=0):
+        """Generate a 20 bytes sequence from user informations to authenticate against the Mi Band 1A
+        @param {MiBand1A} self
+        @param {string} bluetooth_address
+        @param {integer} gender
+        @param {integer} age
+        @param {integer} height
+        @param {integer} weight
+        @param {string} alias
+        @param {integer} which_hand
+        @param {integer} feature (MiBand_1A=5, MiBand_1S=4)
+        @param {integer} appearance (noire=0)
+        @return {Buffer} magic sequence that allow us to authenticate against Mi Band
+        @see https://github.com/Freeyourgadget/Gadgetbridge/blob/e392fbfd800dc326aee2ac49e122a41ab223ab05/app/src/main/java/nodomain/freeyourgadget/gadgetbridge/devices/miband/UserInfo.java
+        @see https://github.com/betomaluje/Mi-Band/blob/6542e34ec5f5b2190262558898ab72810f1b880f/MiBand/app/src/main/java/com/betomaluje/miband/model/UserInfo.java
+        """
+
+        # Initialize response
+        user_info = bytearray([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+
+        # Prepare UID section
+        uid = self.compute_uid(alias);
+        user_info[0] = (uid >> 0) & 0x000000ff  # user ID
+        user_info[1] = (uid >> 8) & 0x000000ff  # user ID
+        user_info[2] = (uid >> 16) & 0x000000ff # user ID
+        user_info[3] = (uid >> 24) & 0x000000ff # user ID
+
+        # Prepare user data section
+        user_info[4] = gender       # gender
+        user_info[5] = age          # age
+        user_info[6] = height       # height
+        user_info[7] = weight       # weight
+        user_info[8] = which_hand   # which hand
+        user_info[9] = feature      # feature
+        user_info[10] = appearance  # appearance
+
+        # Prepare alias section
+        alias_normalise = self.normalize(alias)
+        for i in range(0, len(alias_normalise)):
+            user_info[11+i] = alias_normalise[i]
+
+        # Prepare CRC8 data
+        temp_buffer = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        for i in range(0, len(temp_buffer)):
+            temp_buffer[i] = user_info[i]
+
+        # Compute CRC8
+        crc8_alias = self.compute_crc8(temp_buffer)
+
+        # Grab the last byte of bluetooth address
+        bluetooth_address_end = int(bluetooth_address[-2:], 16)
+
+        # Compute the magic
+        magic_crc = (crc8_alias ^ bluetooth_address_end) & 0x000000ff
+
+        # Add magic CRC to the end
+        user_info[19] = magic_crc
+
+        # On retourne le tout
+        return user_info
+
 
 
     def handleNotification(self, handle, data):
@@ -524,10 +678,12 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
 
 
 if __name__ == "__main__":
+    
     # Header message
     print("\n***********************")
     print("*** MiBand1A v0.1.0 ***")
     print("***********************\n")
+
 
     try:
         print(" => Instanciate object")
