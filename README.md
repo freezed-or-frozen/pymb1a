@@ -9,8 +9,10 @@ This class use bluepy to handle BLuetooth Low Energy communication. Have a look 
 pip3 install bluepy
 ```
 
+
 ## Installation
 Download the main class file and add it to your project
+
 
 ## Usage
 Import the class
@@ -18,9 +20,9 @@ Import the class
 import mi_band_1a
 ```
 
-Instanciate with bluetooth address of the Mi Band device
+Instanciate with a few informations
 ```python
-mb1a = MiBand1A("C8:0F:10:01:02:03")
+mb1a = MiBand1A(gender=2, age=25, height=175, weight=70, alias="jbegood", which_hand=0, keep_data=True)
 ```
 
 Scan and connect to the device
@@ -66,17 +68,44 @@ Finally disconnect to the device
 mb1a.disconnect()
 ```
 
+
 ## To do list
-Roadmap :
-- read basic informations (~~battery~~, ~~realtime steps~~, date time, device informations, device name)
-- ~~read and record sensor data (accelerometer raw value) in a CSV file~~
-- ~~read and count steps done in activity data recorded in the device~~
-- read and analyse sleep informations in activity data recorded in the device
+Basic informations roadmap :
+- read basic informations
+  - ~~battery~~
+  - ~~realtime steps~~
+  - date time
+  - device informations
+  - device name
+  - goal
+- write basic informations
+  - date time
+  - device name
+  - goal
+- vibrate the wrist
+- light on/off leds
+
+Private informations roadmap :
+- authenticate to access private data (activity data and sensor data)
+
+Sensor data roadmap :
+- ~~read sensor data (accelerometer raw value)~~
+- ~~analyse and record sensor data (accelerometer raw value) in a CSV file~~
+
+Activity data roadmap :
+- ~~read activity data (steps, sleep) recorded in the device~~
+- ~~analyse and count steps contained in activity data~~
+- analyse sleep informations contained in activity data
+- ~~analyse and record sensor data (accelerometer raw value) in a CSV file~~
+
+Other roadmap
 - create a pip package
+- write documentation
+
 
 ## Changelog
 Release 0.1.0
 - first release
-- read basic informations like battery, realtime steps, date time and device info
+- read basic informations like battery, realtime steps
 - can read and record in a CSV file raw value from accelerometer
 - can read and count steps done in activity data recorded in the device

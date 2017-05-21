@@ -18,40 +18,79 @@ import bluepy
 class MiBand1A(bluepy.btle.DefaultDelegate):
     """MiBand1A class
     """
-    def __init__(self, bluetooth_address):
+    def __init__(self, gender, age, height, weight, alias, which_hand, keep_data):
         """Constructor method to initialise everything useful
         @param {MiBand1A} self
-        @param {string} bluetooth_adress
+        @param {string} alias user name (8 characters max)
+        @param {integer} gender (0=female, 1=man, 2=other)
+        @param {integer} age
+        @param {integer} height in cm (e.g.: 175)
+        @param {integer} weight in kg (e.g.: 75)
+        @param {string} alias user name (ex: "jbegood")
+        @param {integer} which_hand (left=0, right=1)
         @return None
         """
         # Call the super class constructor
         bluepy.btle.DefaultDelegate.__init__(self)
 
         # Some initializations
-        self.bluetooth_address = bluetooth_address
+        self.gender = gender
+        self.age = age
+        self.height = height
+        self.weight = weight
+        self.alias = alias
+        self.which_hand = which_hand
+        self.keep_data = keep_data
+
+        self.bluetooth_address = None
         self.device = None
-        self.timeout = 1.0
-        self.csv_file = None
+        self.sensor_data_csv_file = None
+        self.activity_data_csv_file = None
         self.gravity = 9.81
         self.scale_factor = 1000
         self.authentication_ended = False
         self.upload_in_progress = False
         self.activity_data = []
         self.ack_messages = []
-        self.keep_data = True
         self.data_block_datak_counter = 0
 
 
-    def scan_and_connect(self):
-        """Method to scan and connect to the device
+    def handleDiscovery(self, dev, is_new_dev, is_new_data):
+        """Method to handle discovery of new BLE devices
         @param {MiBand1A} self
+        @param {ScanEntry} dev
+        @param {boolean} is_new_dev
+        @param {boolean} isNewData
         @return None
         """
-        # Scan and connect to the Flower Power device
-        self.device = bluepy.btle.Peripheral(self.bluetooth_address)
+        if is_new_dev:
+            print("   + Discovered device : address=%s rssi=%d dBm" % (dev.addr, dev.rssi) )
+        elif is_new_data:
+            print("   + Received new data from", dev.addr)
 
-        # Record us as a callback object to handle notifications
-        self.device.setDelegate( self )
+
+    def scan_and_connect(self, timeout, bluetooth_addresses, rssi_threshold):
+        """Method to scan and connect to a chosen and close  BLE device
+        @param {MiBand1A} self
+        @param {float} timeout
+        @param {list} bluetooth_addresses of Mi Band wrist
+        @param {integer} rssi_threshold
+        @return {string} bluetooth_address of the connected device or None
+        """
+        # Start scanning for devices to connect to
+        scanner = bluepy.btle.Scanner().withDelegate(self)
+        devices = scanner.scan(timeout)
+
+        # Is a Mi Band inside the ScanEntry list after scanning
+        for dev in devices:
+            for bluetooth_address in bluetooth_addresses:
+                if dev.addr == bluetooth_address and dev.rssi > rssi_threshold:
+                    print("   + Found a Mi Band 1A in the wish list, try to connect")
+                    self.bluetooth_address = dev.addr
+                    self.device = bluepy.btle.Peripheral(self.bluetooth_address)
+                    self.device.setDelegate( self )
+                    return True
+        return False
 
 
     def disconnect(self):
@@ -59,8 +98,9 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         @param {MiBand1A} self
         @return None
         """
-        # Scan and connect to the Flower Power device
-        self.device.disconnect()
+        # Disconect the device (if already connected)
+        if self.device is not None:
+            self.device.disconnect()
 
 
     def get_services_and_characteristics(self):
@@ -202,8 +242,8 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         Sensor data means raw x-axis, y-axis and z-axis values
         """
         # Open CSV file
-        self.csv_file = open(csv_file_name, "w")
-        self.csv_file.write("x-axis;y-axis;z-axis\n")
+        self.sensor_data_csv_file = open(csv_file_name, "w")
+        self.sensor_data_csv_file.write("x-axis;y-axis;z-axis\n")
 
         # Enable live sensor data
         on_command = bytes([0x12, 0x01])
@@ -218,7 +258,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         self.control_point_characteristic.write(off_command, True)
 
         # Close CSV file
-        self.csv_file.close()
+        self.sensor_data_csv_file.close()
 
 
     def fetch_activity_data(self, csv_file_name):
@@ -369,8 +409,8 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
 
             millis = int(round(time.time() * 1000))
             #print("%d | %f | %f | %f " % (x_raw_value, x_acc_value, y_acc_value, z_acc_value))
-            if self.csv_file is not None:
-                self.csv_file.write("%d;%f;%f;%f\n" % (millis, x_acc_value, y_acc_value, z_acc_value))
+            if self.sensor_data_csv_file is not None:
+                self.sensor_data_csv_file.write("%d;%f;%f;%f\n" % (millis, x_acc_value, y_acc_value, z_acc_value))
 
 
     def handleNotification(self, handle, data):
@@ -437,42 +477,42 @@ if __name__ == "__main__":
 
     try:
         print(" => Instanciate object")
-        mb1a = MiBand1A("C8:0F:10:76:8F:85")
+        mb1a = MiBand1A(gender=2, age=25, height=175, weight=70, alias="testy", which_hand=0, keep_data=True)
 
-        print(" => Scan and connect to the Xiaomi Mi Band 1A")
-        mb1a.scan_and_connect()
+        print(" => Scan for 10s and try to connect to a Xiaomi Mi Band 1A")
+        if mb1a.scan_and_connect(5.0, ["c8:0f:10:76:8f:85", "c8:0f:10:76:8f:79"], -80) == True:
 
-        print(" => Get services and characteristics")
-        mb1a.get_services_and_characteristics()
+            print(" => Get services and characteristics")
+            mb1a.get_services_and_characteristics()
 
-        print(" => Subscribe to notifications")
-        mb1a.subscribe_to_notifications()
+            print(" => Subscribe to notifications")
+            mb1a.subscribe_to_notifications()
 
-        print(" => Read device info")
-        print("   + device_info : ", mb1a.read_device_info() )
+            print(" => Read device info")
+            print("   + device_info : ", mb1a.read_device_info() )
 
-        print(" => Authenticate")
-        print("   + authenticate success : ", mb1a.authenticate() )
+            print(" => Authenticate")
+            print("   + authenticate success : ", mb1a.authenticate() )
 
-        print(" => Read date time")
-        print("   + date_time : ", mb1a.read_date_time() )
+            print(" => Read date time")
+            print("   + date_time : ", mb1a.read_date_time() )
 
-        print(" => Read device info")
-        print("   + device_info : ", mb1a.read_device_info() )
+            print(" => Read device info")
+            print("   + device_info : ", mb1a.read_device_info() )
 
-        print(" => Read battery")
-        print("   + battery : ", mb1a.read_battery() )
+            print(" => Read battery")
+            print("   + battery : ", mb1a.read_battery() )
 
-        print(" => Read realtime steps")
-        print("   + realtime_steps : ", mb1a.read_realtime_steps() )
+            print(" => Read realtime steps")
+            print("   + realtime_steps : ", mb1a.read_realtime_steps() )
 
-        print(" => Fetch activity data")
-        print("   + activity data steps recorded : ", mb1a.fetch_activity_data("dump_activity_data.csv") )
+            print(" => Fetch activity data")
+            print("   + activity data steps recorded : ", mb1a.fetch_activity_data("dump_activity_data.csv") )
 
-        time.sleep(1)
+            time.sleep(1)
 
-        #print(" => Record sensor data")
-        #mb1a.record_sensor_data("dump_sensor_data.csv", 300)
+            #print(" => Record sensor data")
+            #mb1a.record_sensor_data("dump_sensor_data.csv", 300)
 
     finally:
         print(" => Disconnect")
