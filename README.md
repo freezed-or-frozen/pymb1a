@@ -14,32 +14,32 @@ Download the main class file and add it to your project
 
 ## Usage
 Import the class
-```
+```python
 import mi_band_1a
 ```
 
 Instanciate with bluetooth address of the Mi Band device
-```
+```python
 mb1a = MiBand1A("C8:0F:10:01:02:03")
 ```
 
 Scan and connect to the device
-```
+```python
 mb1a.scan_and_connect()
 ```
 
 Get useful services and characteristics
-```
+```python
 mb1a.get_services_and_characteristics()
 ```
 
 Subscribe to useful notifications
-```
+```python
 mb1a.subscribe_to_notifications()
 ```
 
 Read some public informations
-```
+```python
 print("   + device_info : ", mb1a.read_device_info() )
 print("   + date_time : ", mb1a.read_date_time() )
 print("   + battery : ", mb1a.read_battery() )
@@ -47,22 +47,22 @@ print("   + realtime_steps : ", mb1a.read_realtime_steps() )
 ```
 
 Authenticate in order to read private informations (activity data and sensor data)
-```
+```python
 print("   + authenticate success : ", mb1a.authenticate() )
 ```
 
 Fetch activity data, decode it to read the steps recorded inside
-```
+```python
 print("   + activity data steps recorded : ", mb1a.fetch_activity_data("dump_activity_data.csv") )
 ```
 
 Record about 300 sensor data samples in a CSV file (a little bit more actually)
-```
+```python
 mb1a.record_sensor_data("dump_sensor_data.csv", 300)
 ```
 
 Finally disconnect to the device
-```
+```python
 mb1a.disconnect()
 ```
 
