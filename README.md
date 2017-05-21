@@ -4,7 +4,7 @@ Should works on Python 3.4 under Linux OS.
 
 
 ## Requirements
-This class use bluepy to handle BLuetooth Low Energy communication. Have a look at https://github.com/IanHarvey/bluepy
+This class use bluepy to handle Bluetooth Low Energy communication. Have a look at https://github.com/IanHarvey/bluepy
 ```
 pip3 install bluepy
 ```

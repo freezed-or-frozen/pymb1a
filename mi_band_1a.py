@@ -180,7 +180,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         """
         # Read date time characteristics as bytes
         data = self.date_time_characteristic.read()
-        print("DEBUG => ", data)
+        #print("DEBUG => ", data)
 
         # Analyse and decode bytes
         date_time = {}
@@ -204,7 +204,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         """
         # Read date time characteristics as bytes
         data = self.battery_characteristic.read()
-        print("DEBUG => ", data)
+        #print("DEBUG => ", data)
 
         # Analyse and decode bytes
         battery_informations = {}
@@ -261,7 +261,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         self.sensor_data_csv_file.close()
 
 
-    def fetch_activity_data(self, csv_file_name):
+    def fetch_activity_data(self, csv_file_name=None):
         """Method to fetch activity data recorded in the Mi Band
         @param {MiBand1A} self
         @return {integer} steps done
@@ -281,7 +281,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
             mb1a.wait_for_notifications(1.0)
 
         # Analyse activity data and return steps done
-        return self.analyse_activity_data()
+        return self.analyse_activity_data(csv_file_name)
 
 
     def wait_for_notifications(self, delay):
@@ -320,9 +320,10 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
             self.ack_messages.append(ack_message)
 
 
-    def analyse_activity_data(self):
+    def analyse_activity_data(self, csv_file_name):
         """Method to analyse and decode activity data.
         @param {MiBand1A} self
+        @param {string} csv_file_name
         @return {integer} steps done
         """
         global_cursor = 0
@@ -334,6 +335,11 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         minutes_counter = 0
         end_of_analyse = False
         start_timestamp = 0
+
+        # Open CSV file
+        if csv_file_name is not None:
+            activity_data_csv_file = open(csv_file_name, "w")
+            activity_data_csv_file.write("timestamp;activity_type;intensity;steps\n")
 
         while end_of_analyse == False:
             # Analyse header block
@@ -360,9 +366,14 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
                 global_cursor += 3
                 local_cursor += 3
                 minutes_counter += 1
-                print("%d | %d | %d | %d" % (start_timestamp + (minutes_counter * 60), temp_block_data[0], temp_block_data[1], temp_block_data[2]) )
+                activity_data_csv_file.write("%d;%d;%d;%d\n" % (start_timestamp + (minutes_counter * 60), temp_block_data[0], temp_block_data[1], temp_block_data[2]) )
+                #print("%d | %d | %d | %d" % (start_timestamp + (minutes_counter * 60), temp_block_data[0], temp_block_data[1], temp_block_data[2]) )
                 if temp_block_data[2] > 0:
                     steps_counter += temp_block_data[2]
+
+        # Close CSV file if open before
+        if activity_data_csv_file is not None:
+            activity_data_csv_file.close()
 
         return steps_counter
 
@@ -385,7 +396,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
             else:
                 x_acc_value = ~((x_raw_value & 0x7ff) - 1)
             x_acc_value = (x_acc_value / self.scale_factor) * self.gravity
-            print("x_type=%d   x_sign=%d   x_raw_value=%d   x_acc_value=%f" % (x_type, x_sign, x_raw_value, x_acc_value))
+            #print("x_type=%d   x_sign=%d   x_raw_value=%d   x_acc_value=%f" % (x_type, x_sign, x_raw_value, x_acc_value))
 
             y_raw_value = ((data[step+5] * 256) + data[step+4]) & 0x0fff
             y_sign = (data[step+5] & 0x30) >> 4
@@ -407,10 +418,10 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
             z_acc_value = (z_acc_value / self.scale_factor) * self.gravity
             #print("z_type=%d   z_sign=%d   z_raw_value=%d   z_acc_value=%f" % (z_type, z_sign, z_raw_value, z_acc_value))
 
-            millis = int(round(time.time() * 1000))
+            #millis = int(round(time.time() * 1000))
             #print("%d | %f | %f | %f " % (x_raw_value, x_acc_value, y_acc_value, z_acc_value))
             if self.sensor_data_csv_file is not None:
-                self.sensor_data_csv_file.write("%d;%f;%f;%f\n" % (millis, x_acc_value, y_acc_value, z_acc_value))
+                self.sensor_data_csv_file.write("%f;%f;%f\n" % (x_acc_value, y_acc_value, z_acc_value))
 
 
     def handleNotification(self, handle, data):
@@ -443,7 +454,6 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
 
         # Handling activity data
         if handle == 32:
-            print(data)
             for b in data:
                 self.activity_data.append(b)
 
@@ -459,7 +469,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
                 if bytes_transferred == 0:
                     for an_ack_message in self.ack_messages:
                         self.control_point_characteristic.write(an_ack_message, True)
-                    print(self.activity_data)
+                    #print(self.activity_data)
                     self.upload_in_progress = False
 
 
@@ -479,7 +489,7 @@ if __name__ == "__main__":
         print(" => Instanciate object")
         mb1a = MiBand1A(gender=2, age=25, height=175, weight=70, alias="testy", which_hand=0, keep_data=True)
 
-        print(" => Scan for 10s and try to connect to a Xiaomi Mi Band 1A")
+        print(" => Scan for 5 and try to connect to a Xiaomi Mi Band 1A")
         if mb1a.scan_and_connect(5.0, ["c8:0f:10:76:8f:85", "c8:0f:10:76:8f:79"], -80) == True:
 
             print(" => Get services and characteristics")
