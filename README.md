@@ -25,9 +25,10 @@ Instanciate with a few informations
 mb1a = MiBand1A(gender=2, age=25, height=175, weight=70, alias="jbegood", which_hand=0, keep_data=True)
 ```
 
-Scan and connect to the device
+Scan with a 5s timeout all good device close enought with a -80 dBm RSSI threshold
 ```python
-mb1a.scan_and_connect()
+if mb1a.scan_and_connect(5.0, ["c8:0f:10:01:02:03", "c8:0f:10:04:05:06"], -80) == True:
+    # do the rest (get characteristics, subscribe notifications, read/write informations, authenticate, activity/sensor data...)
 ```
 
 Get useful services and characteristics
