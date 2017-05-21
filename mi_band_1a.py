@@ -109,7 +109,8 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         @return None
         """
         # Get useful services
-        self.mili_service = self.device.getServiceByUUID("0000fee0-0000-1000-8000-00805f9b34fb")
+        self.mili_service =  self.device.getServiceByUUID("0000fee0-0000-1000-8000-00805f9b34fb")
+        self.alert_service = self.device.getServiceByUUID("00001802-0000-1000-8000-00805f9b34fb")
 
         # Get useful characteristics
         self.device_info_characteristic =       self.mili_service.getCharacteristics("0000ff01-0000-1000-8000-00805f9b34fb")[0]
@@ -126,6 +127,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         self.battery_characteristic =           self.mili_service.getCharacteristics("0000ff0c-0000-1000-8000-00805f9b34fb")[0]
         self.test_characteristic =              self.mili_service.getCharacteristics("0000ff0d-0000-1000-8000-00805f9b34fb")[0]
         self.sensor_data_characteristic =       self.mili_service.getCharacteristics("0000ff0e-0000-1000-8000-00805f9b34fb")[0]
+        self.vibrate_characteristic =           self.alert_service.getCharacteristics("00002a06-0000-1000-8000-00805f9b34fb")[0]
 
 
     def subscribe_to_notifications(self):
@@ -424,6 +426,46 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
                 self.sensor_data_csv_file.write("%f;%f;%f\n" % (x_acc_value, y_acc_value, z_acc_value))
 
 
+    def vibrate(self, duration=0.5):
+        """Method to put device in vibration mode for a specified duration
+        @param {MiBand1A} self
+        @param {float} duration
+        @return None
+        """
+        # Start vibration
+        start_command = bytes([0x01])
+        self.vibrate_characteristic.write(start_command, False)
+        #start_command = bytes([0x08, 0x01])
+        #self.control_point_characteristic.write(start_command, True)
+
+        # Wait
+        time.sleep(duration)
+
+        # Stop vibration
+        stop_command = bytes([0x00])
+        self.vibrate_characteristic.write(stop_command, False)
+        #stop_command = bytes([0x13])
+        #self.control_point_characteristic.write(stop_command, True)
+
+
+    def flash_leds(self):
+        """Method to flash the leds
+        @param {MiBand1A} self
+        @param {float} duration
+        @return None
+        """
+        # Start vibration
+        led_on_command = bytes([0x0e, 0xff, 0xff, 0xff, 0x01])
+        self.control_point_characteristic.write(led_on_command, True)
+
+        # Wait
+        time.sleep(0.5)
+
+        # Stop vibration
+        led_off_command = bytes([0x0e, 0xff, 0xff, 0xff, 0x00])
+        self.control_point_characteristic.write(led_off_command, True)
+
+
     def handleNotification(self, handle, data):
         """Method overloaded from mother class to handle notifications
         @param {MiBand1A} self
@@ -448,6 +490,8 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
             elif data[0] == 0x06:
                 print("   + Authentication failed")
                 self.authentication_ended = True
+            elif data[0] == 0x1d:
+                print("   + Vibrate ok")
             else:
                 print("   + Unknown notification")
 
@@ -518,6 +562,12 @@ if __name__ == "__main__":
 
             print(" => Fetch activity data")
             print("   + activity data steps recorded : ", mb1a.fetch_activity_data("dump_activity_data.csv") )
+
+            print(" => Vibrate to inform user that transfer is done")
+            mb1a.vibrate(0.5)
+
+            print(" => Flash leds")
+            mb1a.flash_leds()
 
             time.sleep(1)
 

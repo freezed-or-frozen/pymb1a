@@ -83,8 +83,8 @@ Basic informations roadmap :
   - date time
   - device name
   - goal
-- vibrate the wrist
-- light on/off leds
+- ~~vibrate the wrist~~
+- ~~light on/off leds~~
 
 Private informations roadmap :
 - authenticate to access private data (activity data and sensor data)
