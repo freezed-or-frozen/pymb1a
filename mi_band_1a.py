@@ -128,6 +128,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         self.battery_characteristic =           self.mili_service.getCharacteristics("0000ff0c-0000-1000-8000-00805f9b34fb")[0]
         self.test_characteristic =              self.mili_service.getCharacteristics("0000ff0d-0000-1000-8000-00805f9b34fb")[0]
         self.sensor_data_characteristic =       self.mili_service.getCharacteristics("0000ff0e-0000-1000-8000-00805f9b34fb")[0]
+        self.pair_characteristic =              self.mili_service.getCharacteristics("0000ff0f-0000-1000-8000-00805f9b34fb")[0]
         self.vibrate_characteristic =           self.alert_service.getCharacteristics("00002a06-0000-1000-8000-00805f9b34fb")[0]
 
 
@@ -165,6 +166,16 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
             return True
         else:
             return False
+
+
+    def pair(self):
+        """Method to manually pair device
+        @param {MiBand1A} self
+        @return {boolean} success or fail
+        """
+        data = bytes([0x02])
+        self.pair_characteristic.write(data, True)
+        return True
 
 
     def read_device_info(self):
@@ -690,10 +701,11 @@ if __name__ == "__main__":
 
     try:
         print(" => Instanciate object")
+        #mb1a = MiBand1A(gender=0, age=0, height=175, weight=70, alias="1550050550", which_hand=0, keep_data=True)  # default user
         mb1a = MiBand1A(gender=2, age=25, height=175, weight=70, alias="testy", which_hand=0, keep_data=True)
 
         print(" => Scan for 5 and try to connect to a Xiaomi Mi Band 1A")
-        if mb1a.scan_and_connect(5.0, ["c8:0f:10:76:8f:85", "c8:0f:10:76:8f:79"], -80) == True:
+        if mb1a.scan_and_connect(5.0, ["c8:0f:10:76:8f:86", "c8:0f:10:76:be:e7"], -80) == True:
 
             print(" => Get services and characteristics")
             mb1a.get_services_and_characteristics()
@@ -704,14 +716,8 @@ if __name__ == "__main__":
             print(" => Read device info")
             print("   + device_info : ", mb1a.read_device_info() )
 
-            print(" => Authenticate")
-            print("   + authenticate success : ", mb1a.authenticate() )
-
             print(" => Read date time")
             print("   + date_time : ", mb1a.read_date_time() )
-
-            print(" => Read device info")
-            print("   + device_info : ", mb1a.read_device_info() )
 
             print(" => Read battery")
             print("   + battery : ", mb1a.read_battery() )
@@ -719,19 +725,21 @@ if __name__ == "__main__":
             print(" => Read realtime steps")
             print("   + realtime_steps : ", mb1a.read_realtime_steps() )
 
-            print(" => Fetch activity data")
-            print("   + activity data steps recorded : ", mb1a.fetch_activity_data("dump_activity_data.csv") )
-
-            print(" => Vibrate to inform user that transfer is done")
+            print(" => Vibrate")
             mb1a.vibrate(0.5)
 
             print(" => Flash leds")
             mb1a.flash_leds()
 
-            time.sleep(1)
+            print(" => Authenticate")
+            if mb1a.authenticate() == True:
 
-            #print(" => Record sensor data")
-            #mb1a.record_sensor_data("dump_sensor_data.csv", 300)
+                print(" => Fetch activity data")
+                print("   + activity data steps recorded : ", mb1a.fetch_activity_data("dump_activity_data.csv") )
+
+                print(" => Record sensor data")
+                mb1a.record_sensor_data("dump_sensor_data.csv", 30)
+
 
     finally:
         print(" => Disconnect")

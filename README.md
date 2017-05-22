@@ -2,9 +2,15 @@
 Python class to communicate with Xiaomi Mi band 1A fitness tracker.
 Should works on Python 3.4 under Linux OS.
 
+I mainly use :
+- Bluetooth sniffing with Wireshark
+- [Gadgetbridge](https://github.com/Freeyourgadget/Gadgetbridge) logs file, source code and community.
+- [bluepy](https://github.com/IanHarvey/bluepy) as a Bluetooth Low Energy library
+Thanks to all.
+
 
 ## Requirements
-This class use bluepy to handle Bluetooth Low Energy communication. Have a look at https://github.com/IanHarvey/bluepy
+You have to install [bluepy](https://github.com/IanHarvey/bluepy).
 ```
 pip3 install bluepy
 ```
@@ -20,7 +26,7 @@ Import the class
 import mi_band_1a
 ```
 
-Instanciate with a few informations
+Instanciate object with user informations
 ```python
 mb1a = MiBand1A(gender=2, age=25, height=175, weight=70, alias="jbegood", which_hand=0, keep_data=True)
 ```
@@ -97,7 +103,7 @@ Basic informations roadmap :
 - ~~light on/off leds~~
 
 Security informations roadmap :
-- handle pairing
+- handle pairing (for now you have to pair the device manually before using this class using bluetooth manager)
 - ~~authenticate to access private data (activity data and sensor data)~~
 
 Sensor data roadmap :
