@@ -49,6 +49,16 @@ print("   + battery : ", mb1a.read_battery() )
 print("   + realtime_steps : ", mb1a.read_realtime_steps() )
 ```
 
+Vibrate during 0.5s
+```python
+mb1a.vibrate(0.5)
+```
+
+Flash leds"
+```python
+mb1a.flash_leds()
+```
+
 Authenticate in order to read private informations (activity data and sensor data)
 ```python
 print("   + authenticate success : ", mb1a.authenticate() )
@@ -59,7 +69,7 @@ Fetch activity data, decode it to read the steps recorded inside
 print("   + activity data steps recorded : ", mb1a.fetch_activity_data("dump_activity_data.csv") )
 ```
 
-Record about 300 sensor data samples in a CSV file (a little bit more actually)
+Read and record about 300 sensor data samples in a CSV file (a little bit more actually)
 ```python
 mb1a.record_sensor_data("dump_sensor_data.csv", 300)
 ```
@@ -86,7 +96,8 @@ Basic informations roadmap :
 - ~~vibrate the wrist~~
 - ~~light on/off leds~~
 
-Private informations roadmap :
+Security informations roadmap :
+- handle pairing
 - ~~authenticate to access private data (activity data and sensor data)~~
 
 Sensor data roadmap :

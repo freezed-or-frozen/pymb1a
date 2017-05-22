@@ -49,6 +49,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         self.gravity = 9.81
         self.scale_factor = 1000
         self.authentication_ended = False
+        self.authentication_ok = False
         self.upload_in_progress = False
         self.activity_data = []
         self.ack_messages = []
@@ -157,9 +158,10 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         self.user_info_characteristic.write(data, True)
         timeout_counter = 0
         while self.authentication_ended == False and timeout_counter < 100:
-            time.sleep(0.1)
+            mb1a.wait_for_notifications(0.1)
             timeout_counter += 1
-        if timeout_counter < 100:
+
+        if timeout_counter < 100 and self.authentication_ok == True:
             return True
         else:
             return False
@@ -627,9 +629,8 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         @param {bytes} data
         @return None
         """
-
-        # DEBUG
         """
+        # DEBUG
         print(handle, end=" : ")
         for b in data:
             print(b, end=" ")
@@ -637,13 +638,15 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         """
 
         # Handling notifications
-        if handle == 22:
+        if handle == 0x16:
             if data[0] == 0x05:
                 print("   + Authentication ok")
                 self.authentication_ended = True
+                self.authentication_ok = True
             elif data[0] == 0x06:
                 print("   + Authentication failed")
                 self.authentication_ended = True
+                self.authentication_ok = False
             elif data[0] == 0x1d:
                 print("   + Vibrate ok")
             else:
@@ -651,7 +654,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
 
 
         # Handling activity data
-        if handle == 32:
+        if handle == 0x20:
             for b in data:
                 self.activity_data.append(b)
 
@@ -672,13 +675,13 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
 
 
         # Handling sensor data
-        if handle == 49:
+        if handle == 0x31:
             self.analyse_raw_data(data)
 
 
 
 if __name__ == "__main__":
-    
+
     # Header message
     print("\n***********************")
     print("*** MiBand1A v0.1.0 ***")
