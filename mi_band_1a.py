@@ -408,9 +408,9 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
             x_sign = (data[step+3] & 0x30) >> 4
             x_type = (data[step+3] & 0xc0) >> 6
             if x_sign == 0:
-                x_acc_value = (x_raw_value & 0x7ff)
+                x_acc_value = x_raw_value
             else:
-                x_acc_value = ~((x_raw_value & 0x7ff) - 1)
+                x_acc_value = x_raw_value - 4097
             x_acc_value = (x_acc_value / self.scale_factor) * self.gravity
             #print("x_type=%d   x_sign=%d   x_raw_value=%d   x_acc_value=%f" % (x_type, x_sign, x_raw_value, x_acc_value))
 
@@ -418,9 +418,9 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
             y_sign = (data[step+5] & 0x30) >> 4
             y_type = (data[step+5] & 0xc0) >> 6
             if y_sign == 0:
-                y_acc_value = (y_raw_value & 0x7ff)
+                y_acc_value = y_raw_value
             else:
-                y_acc_value = ~((y_raw_value & 0x7ff) - 1)
+                y_acc_value = y_raw_value - 4097
             y_acc_value = (y_acc_value / self.scale_factor) * self.gravity
             #print("y_type=%d   y_sign=%d   y_raw_value=%d   y_acc_value=%f" % (y_type, y_sign, y_raw_value, y_acc_value))
 
@@ -428,14 +428,14 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
             z_sign = (data[step+7] & 0x30) >> 4
             z_type = (data[step+7] & 0xc0) >> 6
             if z_sign == 0:
-                z_acc_value = (z_raw_value & 0x7ff)
+                z_acc_value = z_raw_value
             else:
-                z_acc_value = ~((z_raw_value & 0x7ff) - 1)
+                z_acc_value = z_raw_value - 4097
             z_acc_value = (z_acc_value / self.scale_factor) * self.gravity
             #print("z_type=%d   z_sign=%d   z_raw_value=%d   z_acc_value=%f" % (z_type, z_sign, z_raw_value, z_acc_value))
 
             #millis = int(round(time.time() * 1000))
-            #print("%d | %f | %f | %f " % (x_raw_value, x_acc_value, y_acc_value, z_acc_value))
+            #print("%f | %f | %f " % (x_acc_value, y_acc_value, z_acc_value))
             if self.sensor_data_csv_file is not None:
                 self.sensor_data_csv_file.write("%f;%f;%f\n" % (x_acc_value, y_acc_value, z_acc_value))
 
@@ -705,7 +705,7 @@ if __name__ == "__main__":
         mb1a = MiBand1A(gender=2, age=25, height=175, weight=70, alias="testy", which_hand=0, keep_data=True)
 
         print(" => Scan for 5 and try to connect to a Xiaomi Mi Band 1A")
-        if mb1a.scan_and_connect(5.0, ["c8:0f:10:76:8f:86", "c8:0f:10:76:be:e7"], -80) == True:
+        if mb1a.scan_and_connect(5.0, ["c8:0f:10:76:8f:85", "c8:0f:10:76:be:e7"], -80) == True:
 
             print(" => Get services and characteristics")
             mb1a.get_services_and_characteristics()
@@ -738,7 +738,7 @@ if __name__ == "__main__":
                 print("   + activity data steps recorded : ", mb1a.fetch_activity_data("dump_activity_data.csv") )
 
                 print(" => Record sensor data")
-                mb1a.record_sensor_data("dump_sensor_data.csv", 30)
+                mb1a.record_sensor_data("dump_sensor_data.csv", 300)
 
 
     finally:
