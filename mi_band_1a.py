@@ -86,9 +86,16 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         for dev in devices:
             for bluetooth_address in bluetooth_addresses:
                 if dev.addr == bluetooth_address and dev.rssi > rssi_threshold:
-                    print("   + Found a Mi Band 1A in the wish list, try to connect")
+                    print("   + Found a Mi Band 1A in the wish list, try to connect to", dev.addr)
                     self.bluetooth_address = dev.addr
+
+                    # Connect to the device
                     self.device = bluepy.btle.Peripheral(self.bluetooth_address)
+
+                    # Lower security level to bypass pairing
+                    self.device.setSecurityLevel("medium")
+
+                    # Record us as a delegate to handle notifications
                     self.device.setDelegate( self )
                     return True
         return False

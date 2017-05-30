@@ -6,6 +6,7 @@ I mainly use :
 - Bluetooth sniffing with Wireshark
 - [Gadgetbridge](https://github.com/Freeyourgadget/Gadgetbridge) logs file, source code and community.
 - [bluepy](https://github.com/IanHarvey/bluepy) as a Bluetooth Low Energy library
+
 Thanks to all.
 
 
@@ -103,7 +104,7 @@ Basic informations roadmap :
 - ~~light on/off leds~~
 
 Security informations roadmap :
-- handle pairing (for now you have to pair the device manually before using this class using bluetooth manager)
+- ~~handle pairing (for now you have to pair the device manually before using this class using bluetooth manager)~~
 - ~~authenticate to access private data (activity data and sensor data)~~
 
 Sensor data roadmap :
