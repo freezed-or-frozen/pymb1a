@@ -21,13 +21,13 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
     def __init__(self, gender, age, height, weight, alias, which_hand, keep_data):
         """Constructor method to initialise everything useful
         @param {MiBand1A} self
-        @param {string} alias user name (8 characters max)
         @param {integer} gender (0=female, 1=man, 2=other)
         @param {integer} age
         @param {integer} height in cm (e.g.: 175)
         @param {integer} weight in kg (e.g.: 75)
         @param {string} alias user name (ex: "jbegood")
         @param {integer} which_hand (left=0, right=1)
+        @param {boolean} keep_data inside the MiBand ?
         @return None
         """
         # Call the super class constructor
@@ -46,6 +46,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         self.device = None
         self.sensor_data_csv_file = None
         self.activity_data_csv_file = None
+        self.sensor_data = None
         self.gravity = 9.81
         self.scale_factor = 1000
         self.authentication_ended = False
@@ -74,13 +75,13 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         """Method to scan and connect to a chosen and close  BLE device
         @param {MiBand1A} self
         @param {float} timeout
-        @param {list} bluetooth_addresses of Mi Band wrist
+        @param {string list} white liste bluetooth_addresses
         @param {integer} rssi_threshold
         @return {string} bluetooth_address of the connected device or None
         """
         # Start scanning for devices to connect to
-        scanner = bluepy.btle.Scanner().withDelegate(self)
-        devices = scanner.scan(timeout)
+        self.scanner = bluepy.btle.Scanner().withDelegate(self)
+        devices = self.scanner.scan(timeout)
 
         # Is a Mi Band inside the ScanEntry list after scanning
         for dev in devices:
@@ -257,9 +258,48 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         return int.from_bytes(data, byteorder='little')
 
 
+    def enable_sensor_data(self):
+        """Method to enable live sensor data from accelerometer
+        @param {MiBand1A} self
+        @return Nothing
+        """
+        # Enable live sensor data
+        on_command = bytes([0x12, 0x01])
+        self.control_point_characteristic.write(on_command, True)
+
+
+    def disable_sensor_data(self):
+        """Method to disable live sensor data from accelerometer
+        @param {MiBand1A} self
+        @return Nothing
+        """
+        # Disable live sensor data
+        off_command = bytes([0x12, 0x00])
+        self.control_point_characteristic.write(off_command, True)
+
+
+    def read_sensor_data(self, timeout=1.0):
+        """Method to read some raw sensor datafrom accelerometer
+        @param {MiBand1A} self
+        @param {float} timeout
+        @return {byte list} Raw sensor data
+
+        Sensor data means raw x-axis, y-axis and z-axis values
+        """
+        # Waiting for sensor data
+        mb1a.wait_for_notifications(timeout)
+
+        raw_data = []
+        for b in self.sensor_data:
+            raw_data.append(b)
+        return raw_data
+
+
     def record_sensor_data(self, csv_file_name, samples):
         """Method to read and record some sensor data in a CSV file
         @param {MiBand1A} self
+        @param {string} csv_file_name where to record accelerometer data
+        @param {int} samples number to record
         @return None
 
         Sensor data means raw x-axis, y-axis and z-axis values
@@ -307,13 +347,13 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         return self.analyse_activity_data(csv_file_name)
 
 
-    def wait_for_notifications(self, delay):
+    def wait_for_notifications(self, timeout):
         """Method to wait for notifications to come
         @param {MiBand1A} self
-        @param {float} delay to wait in seconds
+        @param {float} timeout to wait in seconds
         @return None
         """
-        return self.device.waitForNotifications(delay)
+        return self.device.waitForNotifications(timeout)
 
 
     def prepare_ack_message(self, data):
@@ -401,13 +441,16 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         return steps_counter
 
 
-    def analyse_raw_data(self, data):
+    def analyse_sensor_data(self, data):
         """Method to analyse and decode raw data from accelerometer (sensor data)
         @param {MiBand1A} self
         @param {bytes} data
         @return {float} acceleration in m^s-2
         """
-        # How to decode sensor data : https://github.com/Freeyourgadget/Gadgetbridge/issues/63
+        # Memorize data in order to read_sensor_data to return it
+        self.sensor_data = data
+
+        # Analyse data
         counter = (data[1] * 256) + data[0]
         for idx in range(0, (len(data)-2) // 6):
             step = idx * 6
@@ -526,7 +569,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         """Normalize alias = max length of 8 char + fill empty byte with 0x00
         @param {MiBand1A} self
         @param {string} alias (maximum length=8)
-        @return {list} normalized_alias
+        @return {byte list} normalized_alias
         """
         # Prepare response by filling with 0x00
         normalized_alias = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
@@ -545,9 +588,9 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
 
 
     def compute_crc8(self, sequence):
-        """Compute CRC8 of a sequence of bytes
+        """Compute CRC8 of a sequence of bytes (Maxim/Dallas formula)
         @param {MiBand1A} self
-        @param {list} sequence
+        @param {byte list} sequence
         @return {integer} crc8
         @see https://gist.github.com/eaydin/768a200c5d68b9bc66e7
         """
@@ -635,7 +678,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         # Add magic CRC to the end
         user_info[19] = magic_crc
 
-        # On retourne le tout
+        # Return the authentication bytes
         return user_info
 
 
@@ -694,7 +737,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
 
         # Handling sensor data
         if handle == 0x31:
-            self.analyse_raw_data(data)
+            self.analyse_sensor_data(data)
 
 
 
@@ -720,6 +763,8 @@ if __name__ == "__main__":
             print(" => Subscribe to notifications")
             mb1a.subscribe_to_notifications()
 
+
+            """
             print(" => Read device info")
             print("   + device_info : ", mb1a.read_device_info() )
 
@@ -737,15 +782,21 @@ if __name__ == "__main__":
 
             print(" => Flash leds")
             mb1a.flash_leds()
-
+            """
             print(" => Authenticate")
             if mb1a.authenticate() == True:
 
-                print(" => Fetch activity data")
-                print("   + activity data steps recorded : ", mb1a.fetch_activity_data("dump_activity_data.csv") )
+                print(" => Read live sensor data")
+                mb1a.enable_sensor_data()
+                for i in range(0, 30):
+                    print( mb1a.read_sensor_data(0.1) )
+                mb1a.disable_sensor_data()
 
-                print(" => Record sensor data")
-                mb1a.record_sensor_data("dump_sensor_data.csv", 300)
+                #print(" => Fetch activity data")
+                #print("   + activity data steps recorded : ", mb1a.fetch_activity_data("dump_activity_data.csv") )
+
+                #print(" => Record sensor data")
+                #mb1a.record_sensor_data("dump_sensor_data.csv", 300)
 
 
     finally:

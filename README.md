@@ -1,6 +1,6 @@
 # pymb1a
 Python class to communicate with Xiaomi Mi band 1A fitness tracker.
-Should works on Python 3.4 under Linux OS.
+Should works on Python 3.4 under Linux OS (Ubuntu and Raspian).
 
 I mainly use :
 - Bluetooth sniffing with Wireshark
