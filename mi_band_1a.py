@@ -460,7 +460,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
             if x_sign == 0:
                 x_acc_value = x_raw_value
             else:
-                x_acc_value = x_raw_value - 4097
+                x_acc_value = x_raw_value - 4096
             x_acc_value = (x_acc_value / self.scale_factor) * self.gravity
             #print("x_type=%d   x_sign=%d   x_raw_value=%d   x_acc_value=%f" % (x_type, x_sign, x_raw_value, x_acc_value))
 
@@ -470,7 +470,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
             if y_sign == 0:
                 y_acc_value = y_raw_value
             else:
-                y_acc_value = y_raw_value - 4097
+                y_acc_value = y_raw_value - 4096
             y_acc_value = (y_acc_value / self.scale_factor) * self.gravity
             #print("y_type=%d   y_sign=%d   y_raw_value=%d   y_acc_value=%f" % (y_type, y_sign, y_raw_value, y_acc_value))
 
@@ -480,7 +480,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
             if z_sign == 0:
                 z_acc_value = z_raw_value
             else:
-                z_acc_value = z_raw_value - 4097
+                z_acc_value = z_raw_value - 4096
             z_acc_value = (z_acc_value / self.scale_factor) * self.gravity
             #print("z_type=%d   z_sign=%d   z_raw_value=%d   z_acc_value=%f" % (z_type, z_sign, z_raw_value, z_acc_value))
 
