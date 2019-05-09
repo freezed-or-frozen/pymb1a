@@ -167,7 +167,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         self.user_info_characteristic.write(data, True)
         timeout_counter = 0
         while self.authentication_ended == False and timeout_counter < 100:
-            mb1a.wait_for_notifications(0.1)
+            self.wait_for_notifications(0.1)
             timeout_counter += 1
 
         if timeout_counter < 100 and self.authentication_ok == True:
@@ -287,7 +287,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         Sensor data means raw x-axis, y-axis and z-axis values
         """
         # Waiting for sensor data
-        mb1a.wait_for_notifications(timeout)
+        self.wait_for_notifications(timeout)
 
         raw_data = []
         for b in self.sensor_data:
@@ -314,7 +314,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
 
         # Loop waiting for sensor data
         for i in range(0, samples):
-            mb1a.wait_for_notifications(1.0)
+            self.wait_for_notifications(1.0)
 
         # Disable live sensor data
         off_command = bytes([0x12, 0x00])
@@ -341,7 +341,7 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
         # Wait for notification
         self.upload_in_progress = True
         while self.upload_in_progress == True:
-            mb1a.wait_for_notifications(1.0)
+            self.wait_for_notifications(1.0)
 
         # Analyse activity data and return steps done
         return self.analyse_activity_data(csv_file_name)
@@ -429,13 +429,14 @@ class MiBand1A(bluepy.btle.DefaultDelegate):
                 global_cursor += 3
                 local_cursor += 3
                 minutes_counter += 1
-                activity_data_csv_file.write("%d;%d;%d;%d\n" % (start_timestamp + (minutes_counter * 60), temp_block_data[0], temp_block_data[1], temp_block_data[2]) )
+                if csv_file_name is not None:
+                    activity_data_csv_file.write("%d;%d;%d;%d\n" % (start_timestamp + (minutes_counter * 60), temp_block_data[0], temp_block_data[1], temp_block_data[2]) )
                 #print("%d | %d | %d | %d" % (start_timestamp + (minutes_counter * 60), temp_block_data[0], temp_block_data[1], temp_block_data[2]) )
                 if temp_block_data[2] > 0:
                     steps_counter += temp_block_data[2]
 
         # Close CSV file if open before
-        if activity_data_csv_file is not None:
+        if csv_file_name is not None:
             activity_data_csv_file.close()
 
         return steps_counter
